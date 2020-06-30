@@ -1,10 +1,12 @@
 package discover
 
 import (
-	"github.com/go-kit/kit/log"
+	"fmt"
 	"github.com/go-kit/kit/sd/consul"
 	"github.com/hashicorp/consul/api"
+	"log"
 	"secondkill/common"
+	"strconv"
 	"sync"
 )
 
@@ -44,4 +46,65 @@ type DiscoverClientInstance struct {
 	mutex  sync.Mutex
 	//服务实例缓存
 	instanceMap sync.Map
+}
+
+func (consulClient *DiscoverClientInstance) Register(instanceId, svcHost, svcPort, healthCheckUrl string, svcName string, weight int, meta map[string]string, tags []string, logger *log.Logger) bool {
+	port, _ := strconv.Atoi(svcPort)
+
+	//构建服务实例元数据
+	fmt.Println(weight)
+	serviceRegistration := &api.AgentServiceRegistration{
+		ID:      instanceId,
+		Name:    svcName,
+		Address: svcHost,
+		Port:    port,
+		Meta:    meta,
+		Tags:    tags,
+		Weights: &api.AgentWeights{
+			Passing: weight,
+		},
+		Check: &api.AgentServiceCheck{
+			DeregisterCriticalServiceAfter: "30s",
+			HTTP:                           "http://" + svcHost + ":" + svcPort + healthCheckUrl,
+			Interval:                       "15s",
+		},
+	}
+
+	//发送服务到consul
+	err := consulClient.cleint.Register(serviceRegistration)
+	if err != nil {
+		if logger != nil {
+			logger.Println("Register service error")
+		}
+		return false
+	}
+	if logger != nil {
+		logger.Println("Register service success")
+	}
+	return true
+
+}
+
+func (consulClient *DiscoverClientInstance) DeRegister(instanceId string, logger *log.Logger) bool {
+	//构建服务实例元数据
+	serviceRegistration := &api.AgentServiceRegistration{
+		ID: instanceId,
+	}
+	//发送服务到consul
+	err := consulClient.cleint.Deregister(serviceRegistration)
+	if err != nil {
+		if logger != nil {
+			logger.Println("DeRegister service error")
+		}
+		return false
+	}
+	if logger != nil {
+		logger.Println("DeRegister service success")
+	}
+	return true
+}
+
+func (consulClient *DiscoverClientInstance) DiscoverServices(serviceName string, logger *log.Logger) []*common.ServiceInstance {
+	//是否已经缓存
+
 }
