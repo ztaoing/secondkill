@@ -6,6 +6,7 @@
 package route
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/afex/hystrix-go/hystrix"
@@ -14,6 +15,9 @@ import (
 	zipkinhttpSvr "github.com/openzipkin/zipkin-go/middleware/http"
 	"net/http"
 	"net/http/httputil"
+	"secondkill/gateway/config"
+	"secondkill/pb"
+	"secondkill/pkg/client"
 	"secondkill/pkg/discover"
 	"secondkill/pkg/loadbalance"
 	"strings"
@@ -135,6 +139,29 @@ func (router *HystrixRouter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+//提前过滤
 func preFilter(r *http.Request) bool {
+	reqPath := r.URL.Path
+	if reqPath == "" {
+		return false
+	}
 
+	res := config.Match(reqPath)
+	if res {
+		return true
+	}
+
+	authToken := r.Header.Get("Authorization")
+	if authToken == "" {
+		return false
+	}
+
+	OAclient, _ := client.NewOAuthClient("oauth", nil, nil)
+	resp, remoteErr := OAclient.CheckToken(context.Background(), nil, &pb.CheckTokenRequest{Token: authToken})
+
+	if remoteErr != nil || resp == nil {
+		return false
+	} else {
+		return true
+	}
 }
