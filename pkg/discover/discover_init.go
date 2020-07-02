@@ -7,6 +7,7 @@ package discover
 
 import (
 	"errors"
+	uuid "github.com/satori/go.uuid"
 	"log"
 	"os"
 	"secondkill/common"
@@ -36,4 +37,34 @@ func DiscoveryService(serviceName string) (*common.ServiceInstance, error) {
 	}
 	//负载均衡
 	return LoadBalance.SelectService(instances)
+}
+
+//服务注册
+func Register() {
+	if ConsulService == nil {
+		panic("ConsulService failed")
+	}
+
+	instanceId := bootstrap.DiscoverConfig.InstanceID
+	if instanceId == "" {
+		instanceId = bootstrap.DiscoverConfig.ServiceName + uuid.NewV4().String()
+	}
+	if !ConsulService.Register(instanceId,
+		bootstrap.DiscoverConfig.Host,
+		bootstrap.DiscoverConfig.Port,
+		"/health",
+		bootstrap.DiscoverConfig.ServiceName,
+		bootstrap.DiscoverConfig.Weight,
+		map[string]string{
+			"rpcPort": bootstrap.RpcConfig.Port,
+		}, nil, Logger,
+	) {
+		//注册失败
+		Logger.Printf("register service %s failed", bootstrap.DiscoverConfig.ServiceName)
+		panic(0)
+	}
+
+	//注册成功
+	Logger.Printf(bootstrap.DiscoverConfig.ServiceName+"-register for service %s success", bootstrap.DiscoverConfig.ServiceName)
+
 }
