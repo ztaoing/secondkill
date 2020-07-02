@@ -9,7 +9,7 @@ var (
 	HttpConfig         HttpConf
 	DiscoverConfig     DiscoverConf
 	ConfigServerConfig ConfigServerConf
-	PrpcConfig         PrpcConf
+	RpcConfig          RpcConf
 )
 
 //http配置
@@ -35,6 +35,6 @@ type ConfigServerConf struct {
 }
 
 //rpc配置
-type PrpcConf struct {
+type RpcConf struct {
 	Port string
 }
