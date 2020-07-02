@@ -32,6 +32,7 @@ var ErrLimitExceed = errors.New("rate limit exceed!")
 func NewTokenBucktLimitterWithBuildIn(bkt *rate.Limiter) endpoint.Middleware {
 	return func(next endpoint.Endpoint) endpoint.Endpoint {
 		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+			//如果限流器不放行
 			if !bkt.Allow() {
 				return nil, ErrLimitExceed
 			}
