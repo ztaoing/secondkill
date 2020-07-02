@@ -13,6 +13,7 @@ import (
 	"log"
 	"secondkill/common"
 	"strconv"
+	"sync"
 )
 
 func New(consulHost, consulPort string) *DiscoverClientInstance {
@@ -32,6 +33,17 @@ func New(consulHost, consulPort string) *DiscoverClientInstance {
 		config: consulConfig,
 		client: client,
 	}
+}
+
+//实现DiscoveryClient接口
+type DiscoverClientInstance struct {
+	Host   string
+	Port   int
+	config *api.Config
+	client consul.Client
+	mutex  sync.Mutex
+	//服务实例缓存
+	instanceMap sync.Map
 }
 
 func (consulClient *DiscoverClientInstance) Register(instanceId, svcHost, svcPort, healthCheckUrl string, svcName string, weight int, meta map[string]string, tags []string, logger *log.Logger) bool {

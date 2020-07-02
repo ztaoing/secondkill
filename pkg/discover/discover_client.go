@@ -1,11 +1,8 @@
 package discover
 
 import (
-	"github.com/go-kit/kit/sd/consul"
-	"github.com/hashicorp/consul/api"
 	"log"
 	"secondkill/common"
-	"sync"
 )
 
 type DiscoveryClient interface {
@@ -26,22 +23,11 @@ type DiscoveryClient interface {
 	服务注销接口
 	@param instanceId 实例的id
 	*/
-	DeRegister(instanceId, logger *log.Logger) bool
+	DeRegister(instanceId string, logger *log.Logger) bool
 
 	/**
 	服务发现
 	@param serviceName 服务的名称
 	*/
 	DiscoverServices(serviceName string, logger *log.Logger) []*common.ServiceInstance
-}
-
-//会实现DiscoveryClient接口
-type DiscoverClientInstance struct {
-	Host   string
-	Port   int
-	config *api.Config
-	client consul.Client
-	mutex  sync.Mutex
-	//服务实例缓存
-	instanceMap sync.Map
 }
