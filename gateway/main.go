@@ -55,4 +55,8 @@ func main() {
 	//注册服务
 	register.Register()
 
+	tags := map[string]string{
+		"component": "gateway_server",
+	}
+
 }
