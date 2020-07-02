@@ -52,7 +52,7 @@ func initDeault() {
 
 //加载远端配置
 func LoadRemoteConfig() (err error) {
-	//配置中心：服务发现
+	//配置中心：服务发现+负载均衡
 	serviceInstance, err := discover.DiscoveryService(bootstrap.ConfigServerConfig.ID)
 	if err != nil {
 		return
