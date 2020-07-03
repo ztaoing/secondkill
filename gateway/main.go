@@ -8,12 +8,20 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"github.com/afex/hystrix-go/hystrix"
 	"github.com/go-kit/kit/log"
 	"github.com/openzipkin/zipkin-go"
+	zipkinhttpSvr "github.com/openzipkin/zipkin-go/middleware/http"
 	zipkinhttp "github.com/openzipkin/zipkin-go/reporter/http"
+	"net"
+	"net/http"
 	"os"
+	"os/signal"
+	"secondkill/gateway/route"
 	"secondkill/pkg/bootstrap"
 	register "secondkill/pkg/discover"
+	"syscall"
 )
 
 func main() {
@@ -59,4 +67,37 @@ func main() {
 		"component": "gateway_server",
 	}
 
+	hystrixRouter := route.Routes(zipkinTracer, "Circuit Breaker:service unavalable", Logger)
+
+	handler := zipkinhttpSvr.NewServerMiddleware(
+		zipkinTracer,
+		zipkinhttpSvr.SpanName(bootstrap.DiscoverConfig.ServiceName),
+		zipkinhttpSvr.TagResponseSize(true),
+		zipkinhttpSvr.ServerTags(tags),
+	)(hystrixRouter)
+
+	errc := make(chan error)
+
+	//启用hystrix实时监控，监听端口为9010
+	hystrixSreamHandler := hystrix.NewStreamHandler()
+	hystrixSreamHandler.Start()
+
+	go func() {
+		errc <- http.ListenAndServe(net.JoinHostPort("", "9010"), hystrixSreamHandler)
+
+	}()
+
+	//监听停止信号
+	go func() {
+		c := make(chan os.Signal)
+		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+		errc <- fmt.Errorf("%s", <-c)
+	}()
+
+	//开始监听
+	go func() {
+		Logger.Log("stransport", "HTTP", "addr", "9090")
+		register.Register()
+		errc <- http.ListenAndServe(":9090", handler)
+	}()
 }
