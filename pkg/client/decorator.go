@@ -12,7 +12,6 @@ import (
 	"github.com/grpc-ecosystem/grpc-opentracing/go/otgrpc"
 	"github.com/opentracing/opentracing-go"
 	zipkinbridge "github.com/openzipkin-contrib/zipkin-go-opentracing"
-	"github.com/openzipkin/zipkin-go"
 	"google.golang.org/grpc"
 	"log"
 	"secondkill/pkg/bootstrap"
@@ -87,6 +86,7 @@ func (manager *DefaultClientManager) DecoratorInvoke(path string, hystrixName st
 		} else {
 			return ErrRPCService
 		}
+		return nil
 	}, func(err error) error {
 		return err
 	}); err != nil {
