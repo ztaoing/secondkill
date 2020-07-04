@@ -381,7 +381,7 @@ func (tokenStore *JwtTokenStore) ReadOAuth2Details(tokenValue string) (*model.OA
 }
 
 func (tokenStore *JwtTokenStore) GetAccessToken(oath2Details *model.OAuth2Details) (*model.OAuth2Token, error) {
-
+	panic("implement me")
 }
 
 func (tokenStore *JwtTokenStore) RemoveAccessToken(tokenValue string) {
