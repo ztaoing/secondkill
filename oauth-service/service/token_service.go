@@ -9,12 +9,16 @@ import (
 	"context"
 	"errors"
 	"github.com/dgrijalva/jwt-go"
+	uuid "github.com/satori/go.uuid"
 	"net/http"
 	"secondkill/oauth-service/model"
+	"strconv"
+	"time"
 )
 
 var (
 	ErrNotSupportGrantType = errors.New("not supported grant type")
+	ErrExpiredToken        = errors.New("expired token")
 )
 
 type TokenGranter interface {
@@ -98,7 +102,7 @@ type TokenService interface {
 	//根据刷新令牌获取访问令牌
 	RefreshAccessToken(refreshTokenValue string) (*model.OAuth2Token, error)
 	//根据用户信息和客户端信息获取已生成访问令牌
-	GetAccessToken(details *model.OAuth2Token) (*model.OAuth2Token, error)
+	GetAccessToken(details *model.OAuth2Details) (*model.OAuth2Token, error)
 	//根据访问令牌值获取访问令牌结构
 	ReadAccessToken(TokenValue string) (*model.OAuth2Token, error)
 }
@@ -138,31 +142,144 @@ type TokenEnhancer interface {
 }
 
 /**
-令牌管理 + token增强
+令牌管理 +存储管理+ token增强
 */
 type DefaultTokenService struct {
 	tokenStore    TokenStore
 	tokenEnhancer TokenEnhancer //token增强
 }
 
+//根据访问令牌获取对应的用户信息和客户端信息
 func (d *DefaultTokenService) GetOAuth2DetailsByAccessToken(tokenValue string) (*model.OAuth2Details, error) {
-	panic("implement me")
+	//首先判断是否过期
+	accessToken, err := d.tokenStore.ReadAccessToken(tokenValue)
+	if err == nil {
+		if accessToken.IsExpired() {
+			return nil, ErrExpiredToken
+		}
+		return d.tokenStore.ReadOAuth2Details(tokenValue)
+	}
+	return nil, err
+
 }
 
+/**
+生成令牌：访问令牌和刷新令牌
+*/
 func (d *DefaultTokenService) CreateAccessToken(oauth2Details *model.OAuth2Details) (*model.OAuth2Token, error) {
-	panic("implement me")
+	//通过客户端信息和用户信息查询令牌是否已经生成
+	token, err := d.tokenStore.GetAccessToken(oauth2Details)
+	var refreshToken *model.OAuth2Token
+	if err == nil {
+		//存在未失效的访问令牌，直接返回
+		if !token.IsExpired() {
+			d.tokenStore.StoreAccessToken(token, oauth2Details)
+			return token, nil
+		}
+		//令牌已过期,移除访问令牌
+		d.tokenStore.RemoveAccessToken(token.TokenValue)
+		//刷新令牌存在时一起移除
+		if token.RefreshToken != nil {
+			d.tokenStore.RemoveRefreshToken(token.RefreshToken.TokenType)
+		}
+	}
+
+	//令牌不存在
+
+	//创建刷新令牌
+	if refreshToken == nil || refreshToken.IsExpired() {
+		refreshToken, err = d.createRefreshToken(oauth2Details)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	//创建访问令牌
+	accessToken, err := d.createAccessToken(refreshToken, oauth2Details)
+	if err == nil {
+		//保存 访问令牌和刷新令牌
+		d.tokenStore.StoreAccessToken(accessToken, oauth2Details)
+		d.tokenStore.StoreRefreshToken(accessToken, oauth2Details)
+	}
+
+	return accessToken, err
 }
 
+//生成刷新令牌
+func (d *DefaultTokenService) createRefreshToken(details *model.OAuth2Details) (*model.OAuth2Token, error) {
+	validitySecond := details.Client.RefreshTokenValiditySeconds
+	s, _ := time.ParseDuration(strconv.Itoa(validitySecond) + "s")
+	expiredTime := time.Now().Add(s)
+	refreshToken := &model.OAuth2Token{
+		ExpireTime: &expiredTime,
+		TokenValue: uuid.NewV4().String(),
+	}
+
+	if d.tokenEnhancer != nil {
+		return d.tokenEnhancer.Enhance(refreshToken, details)
+	}
+	return refreshToken, nil
+}
+
+//生成访问令牌
+func (d *DefaultTokenService) createAccessToken(refreshToken *model.OAuth2Token, details *model.OAuth2Details) (*model.OAuth2Token, error) {
+	validitySeconds := details.Client.AccessTokenValiditySeconds
+	s, _ := time.ParseDuration(strconv.Itoa(validitySeconds) + "s")
+	expiredTime := time.Now().Add(s)
+	accessToken := &model.OAuth2Token{
+		RefreshToken: refreshToken,
+		ExpireTime:   &expiredTime,
+		TokenValue:   uuid.NewV4().String(),
+	}
+	if d.tokenEnhancer != nil {
+		return d.tokenEnhancer.Enhance(accessToken, details)
+	}
+	return accessToken, nil
+}
+
+//根据刷新令牌获取访问令牌
 func (d *DefaultTokenService) RefreshAccessToken(refreshTokenValue string) (*model.OAuth2Token, error) {
-	panic("implement me")
+	refreshToken, err := d.tokenStore.ReadRefreshToken(refreshTokenValue)
+	if err == nil {
+		if refreshToken.IsExpired() {
+			return nil, ErrExpiredToken
+		}
+		oauthDetails, err := d.tokenStore.ReadOAuth2DetailsForRefreshToken(refreshTokenValue)
+		if err == nil {
+			token, err := d.tokenStore.GetAccessToken(oauthDetails)
+			if err == nil {
+				//移除原有的访问令牌
+				d.tokenStore.RemoveAccessToken(token.TokenValue)
+			}
+
+			//移除已使用的刷新令牌
+			d.tokenStore.RemoveRefreshToken(refreshTokenValue)
+
+			//创建刷新令牌
+			refreshToken, err := d.createRefreshToken(oauthDetails)
+			if err == nil {
+				accessToken, err := d.createAccessToken(refreshToken, oauthDetails)
+				if err == nil {
+					//存储
+					d.tokenStore.StoreRefreshToken(refreshToken, oauthDetails)
+					d.tokenStore.StoreAccessToken(accessToken, oauthDetails)
+				}
+				return accessToken, nil
+			}
+
+		}
+	}
+	return nil, err
 }
 
-func (d *DefaultTokenService) GetAccessToken(details *model.OAuth2Token) (*model.OAuth2Token, error) {
-	panic("implement me")
+//根据客户端和用户信息获取访问令牌
+func (d *DefaultTokenService) GetAccessToken(details *model.OAuth2Details) (*model.OAuth2Token, error) {
+	return d.tokenStore.GetAccessToken(details)
 }
 
+//根据访问令牌值获取访问令牌结构
 func (d *DefaultTokenService) ReadAccessToken(TokenValue string) (*model.OAuth2Token, error) {
-	panic("implement me")
+	return d.tokenStore.ReadAccessToken(TokenValue)
 }
 
 func NewTokenService(tokenStore TokenStore, enhancer TokenEnhancer) TokenService {
@@ -180,15 +297,59 @@ type JwtTokenEnhancer struct {
 }
 
 func (enhance *JwtTokenEnhancer) Enhance(oauth2Token *model.OAuth2Token, oauth2Details *model.OAuth2Details) (*model.OAuth2Token, error) {
-	panic("implement me")
+	//封装
+	return enhance.sign(oauth2Token, oauth2Details)
 }
 
+//解封装
 func (enhance *JwtTokenEnhancer) Extract(tokenValue string) (*model.OAuth2Token, *model.OAuth2Details, error) {
-	panic("implement me")
+	token, err := jwt.ParseWithClaims(tokenValue, &OAuth2TokenCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return enhance.secretKey, nil
+	})
+	if err == nil {
+		claims := token.Claims.(*OAuth2TokenCustomClaims)
+		expiredTime := time.Unix(claims.ExpiresAt, 0)
+		return &model.OAuth2Token{
+				RefreshToken: &claims.RefreshToken,
+				TokenValue:   tokenValue,
+				ExpireTime:   &expiredTime,
+			}, &model.OAuth2Details{
+				User:   &claims.UserDetails,
+				Client: &claims.ClientDetails,
+			}, nil
+	}
+	return nil, nil, err
 }
 
 //将令牌对应的用户信息和客户端信息写入到JWT的声明中
 func (enhance *JwtTokenEnhancer) sign(token *model.OAuth2Token, details *model.OAuth2Details) (*model.OAuth2Token, error) {
+	expiredTime := token.ExpireTime
+	clientDetails := *details.Client
+	userDetails := *details.User
+	clientDetails.ClientSecret = ""
+	userDetails.Password = ""
+
+	claims := OAuth2TokenCustomClaims{
+		UserDetails:   userDetails,
+		ClientDetails: clientDetails,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: expiredTime.Unix(),
+			Issuer:    "System",
+		},
+	}
+
+	if token.RefreshToken != nil {
+		claims.RefreshToken = *token.RefreshToken
+	}
+	//HS256使用对称加密算法
+	EncodeToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenValue, err := EncodeToken.SignedString(enhance.secretKey)
+	if err == nil {
+		token.TokenValue = tokenValue
+		token.TokenType = "jwt"
+		return token, nil
+	}
+	return nil, err
 
 }
 
@@ -205,40 +366,45 @@ type JwtTokenStore struct {
 	jwtTokenEnhancer *JwtTokenEnhancer
 }
 
-func (j *JwtTokenStore) StoreAccessToken(oauth2Token *model.OAuth2Token, oauth2Details *model.OAuth2Details) {
+func (tokenStore *JwtTokenStore) StoreAccessToken(oauth2Token *model.OAuth2Token, oauth2Details *model.OAuth2Details) {
 	panic("implement me")
 }
 
-func (j *JwtTokenStore) ReadAccessToken(tokenValue string) (*model.OAuth2Token, error) {
+func (tokenStore *JwtTokenStore) ReadAccessToken(tokenValue string) (*model.OAuth2Token, error) {
+	token, _, err := tokenStore.jwtTokenEnhancer.Extract(tokenValue)
+	return token, err
+}
+
+func (tokenStore *JwtTokenStore) ReadOAuth2Details(tokenValue string) (*model.OAuth2Details, error) {
+	_, details, err := tokenStore.jwtTokenEnhancer.Extract(tokenValue)
+	return details, err
+}
+
+func (tokenStore *JwtTokenStore) GetAccessToken(oath2Details *model.OAuth2Details) (*model.OAuth2Token, error) {
+
+}
+
+func (tokenStore *JwtTokenStore) RemoveAccessToken(tokenValue string) {
 	panic("implement me")
 }
 
-func (j *JwtTokenStore) ReadOAuth2Details(tokenValue string) (*model.OAuth2Details, error) {
+func (tokenStore *JwtTokenStore) StoreRefreshToken(oauth2Token *model.OAuth2Token, oauth2Details *model.OAuth2Details) {
 	panic("implement me")
 }
 
-func (j *JwtTokenStore) GetAccessToken(oath2Details *model.OAuth2Details) (*model.OAuth2Token, error) {
+func (tokenStore *JwtTokenStore) RemoveRefreshToken(oauth2Token string) {
 	panic("implement me")
 }
 
-func (j *JwtTokenStore) RemoveAccessToken(tokenValue string) {
-	panic("implement me")
+func (tokenStore *JwtTokenStore) ReadRefreshToken(tokenValue string) (*model.OAuth2Token, error) {
+	token, _, err := tokenStore.jwtTokenEnhancer.Extract(tokenValue)
+	return token, err
 }
 
-func (j *JwtTokenStore) StoreRefreshToken(oauth2Token *model.OAuth2Token, oauth2Details *model.OAuth2Details) {
-	panic("implement me")
-}
-
-func (j *JwtTokenStore) RemoveRefreshToken(oauth2Token string) {
-	panic("implement me")
-}
-
-func (j *JwtTokenStore) ReadRefreshToken(tokenValue string) (*model.OAuth2Token, error) {
-	panic("implement me")
-}
-
-func (j *JwtTokenStore) ReadOAuth2DetailsForRefreshToken(tokenValue string) (*model.OAuth2Details, error) {
-	panic("implement me")
+//根据令牌值获取刷新令牌对应的客户端和用户信息
+func (tokenStore *JwtTokenStore) ReadOAuth2DetailsForRefreshToken(tokenValue string) (*model.OAuth2Details, error) {
+	_, details, err := tokenStore.jwtTokenEnhancer.Extract(tokenValue)
+	return details, err
 }
 
 func NewJwtTokenStore(enhancer *JwtTokenEnhancer) TokenStore {
