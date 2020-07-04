@@ -9,6 +9,7 @@ package transports
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/tracing/zipkin"
 	"github.com/go-kit/kit/transport"
@@ -19,6 +20,10 @@ import (
 	"net/http"
 	"secondkill/oauth-service/endpoint"
 	"secondkill/oauth-service/service"
+)
+
+var (
+	ErrorTokenRequest = errors.New("invalid token request")
 )
 
 func MakeHttpHandler(ctx context.Context, endpoints endpoint.OAuthEndpoints, service service.TokenService, ClientdetailsService service.ClientDetailsService, tracer *zipkinGo.Tracer, logger log.Logger) http.Handler {
@@ -44,7 +49,7 @@ func MakeHttpHandler(ctx context.Context, endpoints endpoint.OAuthEndpoints, ser
 	r.Methods("POST").Path("/oauth/token").Handler(kithttp.NewServer(
 		endpoints.TokenEndpoint,
 		decodeCheckTokenRequest,
-		encodeCheckTokenResponse,
+		encodeJsonResponse,
 		clientAuthorizationOptions...,
 	))
 
@@ -62,6 +67,7 @@ func MakeHttpHandler(ctx context.Context, endpoints endpoint.OAuthEndpoints, ser
 		encodeJsonResponse,
 		option...,
 	))
+	return r
 }
 
 /**
@@ -89,4 +95,23 @@ func makeClientAuthorizationContext(ClientDetailsService service.ClientDetailsSe
 		}
 		return context.WithValue(ctx, endpoint.OAuth2ClientDetailsKey, endpoint.ErrInvalidClientRequest)
 	}
+}
+
+func decodeCheckTokenRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	tokenValue := r.URL.Query().Get("token")
+	if tokenValue == "" {
+		return nil, ErrorTokenRequest
+	}
+	return &endpoint.CheckTokenRequest{
+		Token: tokenValue,
+	}, nil
+}
+
+func encodeJsonResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
+	w.Header().Set("Content-Type", "application/json:charset=utf-8")
+	return json.NewEncoder(w).Encode(response)
+}
+
+func decodeHealthCheckRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	return endpoint.HealthRequest{}, nil
 }
