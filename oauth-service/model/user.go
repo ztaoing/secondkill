@@ -13,7 +13,7 @@ type UserDetails struct {
 	//密码
 	Password string
 	//用户拥有的权限
-	Authoritied []string
+	Authorities []string
 }
 
 func (userDetails *UserDetails) IsMatch(username string, password string) bool {
