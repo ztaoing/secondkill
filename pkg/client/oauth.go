@@ -27,11 +27,11 @@ type OAuthClientImpl struct {
 }
 
 func (O *OAuthClientImpl) CheckToken(ctx context.Context, tracer opentracing.Tracer, request *pb.CheckTokenRequest) (*pb.CheckTokenResponse, error) {
-	panic("implement me")
+	panic("todo ")
 }
 
 //初始化OAuthClientImpl实例，并配置其各种属性
-func NewOAuthClient(serviceName string, lb loadbalance.LoadBalance, tracer opentracing.Tracer, request *pb.CheckTokenRequest) (OAuthClient, error) {
+func NewOAuthClient(serviceName string, lb loadbalance.LoadBalance, tracer opentracing.Tracer) (OAuthClient, error) {
 	if serviceName == "" {
 		serviceName = "oauth"
 	}

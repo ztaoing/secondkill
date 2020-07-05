@@ -32,7 +32,7 @@ func init() {
 		log.Fatal("fail to parse config server", err)
 	}
 	//解析PRC配置
-	if err := subParse("rpc", &PrpcConfig); err != nil {
+	if err := subParse("rpc", &RpcConfig); err != nil {
 		log.Fatal("fail to parse rpc server", err)
 	}
 }

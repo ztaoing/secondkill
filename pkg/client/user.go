@@ -29,6 +29,7 @@ type UserClientImpl struct {
 
 func (impl *UserClientImpl) CheckUser(ctx context.Context, tracer opentracing.Tracer, request *pb.UserRequest) (*pb.UserResponse, error) {
 	response := new(pb.UserResponse)
+	///rpc调用地址：pb.UserService/Check
 	if err := impl.manager.DecoratorInvoke("/pb.UserService/Check", "user_check", tracer, ctx, request, response); err == nil {
 		return response, nil
 	} else {
