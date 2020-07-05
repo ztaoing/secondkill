@@ -16,7 +16,10 @@ import (
 	"secondkill/pkg/config"
 )
 
-var Logger log.Logger
+var (
+	ZipKinTracer *zipkin.Tracer
+	Logger       log.Logger
+)
 
 const KConfigType = "CONFIG_TYPE"
 
