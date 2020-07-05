@@ -1,0 +1,19 @@
+http:
+  host:127.0.0.1
+  port:9019
+
+rpc:
+  host:127.0.0.1
+  port:9018
+
+dicover:
+  host:127.0.0.1
+  port:8500
+  instanceId:oauth-service-localhost
+  serviceName:oauth
+  weight:10
+
+config:
+  id:config-service
+  profile:"dev"
+  lable:"master"
