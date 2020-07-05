@@ -21,7 +21,7 @@ type Service interface {
 	HealthCheck() bool
 	SecInfo(productId int) (data map[string]interface{})
 	SecKill(req *model.SecRequest) (map[string]interface{}, int, error)
-	SecInfoList([]map[string]interface{}, int, error)
+	SecInfoList() ([]map[string]interface{}, int, error)
 }
 
 type ServiceMiddleware func(Service) Service
