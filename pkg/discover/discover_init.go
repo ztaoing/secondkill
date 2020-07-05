@@ -61,10 +61,28 @@ func Register() {
 	) {
 		//注册失败
 		Logger.Printf("register service %s failed", bootstrap.DiscoverConfig.ServiceName)
-		panic(0)
+		panic("consulService register failed")
 	}
 
 	//注册成功
 	Logger.Printf(bootstrap.DiscoverConfig.ServiceName+"-register for service %s success", bootstrap.DiscoverConfig.ServiceName)
+
+}
+
+//服务注销
+func Deregister() {
+	if ConsulService == nil {
+		panic("consul srvice is nil")
+	}
+	//
+	instanceId := bootstrap.DiscoverConfig.InstanceID
+
+	if instanceId == "" {
+		instanceId = bootstrap.DiscoverConfig.ServiceName + "-" + uuid.NewV4().String()
+	}
+	if !ConsulService.DeRegister(instanceId, Logger) {
+		Logger.Printf("deregister for service %s failed", bootstrap.DiscoverConfig.ServiceName)
+		panic(0)
+	}
 
 }
