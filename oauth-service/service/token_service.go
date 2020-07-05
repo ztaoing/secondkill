@@ -83,7 +83,7 @@ func (r2 RefreshTokenGranter) Grant(ctx context.Context, grantType string, clien
 	panic("implement me")
 }
 
-func NewRefreshGrant(grantType string, tokenService TokenService) TokenGranter {
+func NewRefreshTokenGrant(grantType string, userDetailsService UserDetailsService, tokenService TokenService) TokenGranter {
 	return &RefreshTokenGranter{
 		supportGrantType: grantType,
 		tokenService:     tokenService,

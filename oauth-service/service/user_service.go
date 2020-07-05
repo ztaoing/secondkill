@@ -20,7 +20,7 @@ var (
 )
 
 type UserDetailsService interface {
-	GetUserDetailsByUsername(ctx context.Context, username string) (*model.UserDetails, error)
+	GetUserDetailsByUsername(ctx context.Context, username string, password string) (*model.UserDetails, error)
 }
 
 //实现了UserDetailsService接口
