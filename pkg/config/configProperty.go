@@ -6,7 +6,6 @@
 package config
 
 import (
-	"github.com/coreos/etcd/clientv3"
 	"github.com/go-redis/redis"
 	"github.com/samuel/go-zookeeper/zk"
 	"sync"
@@ -14,15 +13,16 @@ import (
 
 var (
 	Redis       RedisConf
-	Etcd        EtcdConf
 	SecKill     SecKillConf
 	MysqlConfig MysqlConf
 	TraceConfig TraceConf
 	Zk          ZookeeperConf
+	//Etcd        EtcdConf
 )
 
 //redis配置
 type RedisConf struct {
+	//client是Redis客户端，代表零个或多个基础连接池。 对于多个goroutine并发使用是安全的。
 	RedisConn            *redis.Client //链接
 	Host                 string
 	Password             string
@@ -37,16 +37,17 @@ type RedisConf struct {
 }
 
 //Etcd配置
+/*
 type EtcdConf struct {
 	EtcdConn          *clientv3.Client //链接
 	EtcdSecProductKey string           //商品键
 	Host              string
 }
+*/
 
 //秒杀商品配置信息
 type SecKillConf struct {
 	RedisConf *RedisConf //redis配置
-	EtcdConf  *EtcdConf  //EtcdP配置
 
 	CookieSecretKey string   //cookie秘钥
 	ReferWhiteList  []string //包名单
@@ -58,7 +59,7 @@ type SecKillConf struct {
 	ReadProxy2LayerGoroutineNum  int
 
 	IPBlackMap map[string]bool
-	IDBlackMap map[string]bool
+	IDBlackMap map[int]bool //用户黑名单
 
 	SecProductInfoMap map[int]*SecProductInfoConf
 
@@ -78,6 +79,7 @@ type SecKillConf struct {
 	SendToWriteChanTimeout int
 	SendToHandChanTimeout  int
 	TokenPassWd            string
+	//	EtcdConf  *EtcdConf  //EtcdP配置
 }
 
 //MySQL配置
