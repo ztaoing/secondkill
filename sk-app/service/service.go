@@ -52,6 +52,11 @@ func (s SkAppService) SecInfo(productId int) (data map[string]interface{}) {
 	return data
 }
 
+/**
+1、黑名单及分钟、秒限流处理
+2、获取秒杀信息
+3、将请求送入SecReqChan，该chan中的请求会经过redis队列，最终被秒杀核心系统处理，并将结果经过redis另外一个队列发送到ResultChan中
+*/
 func (s SkAppService) SecKill(req *model.SecRequest) (map[string]interface{}, int, error) {
 	//对map加锁处理
 	config.SkAppContext.RWSecProductLock.RLock()
