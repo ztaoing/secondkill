@@ -65,7 +65,7 @@ func initTracer(zipkinURL string) {
 		reporter      = zipkinhttp.NewReporter(zipkinURL)
 	)
 	zEndpoint, _ := zipkin.NewEndpoint(bootstrap.DiscoverConfig.ServiceName, bootstrap.HttpConfig.Port)
-	_, err = zipkin.NewTracer(reporter,
+	ZipkinTracer, err = zipkin.NewTracer(reporter,
 		zipkin.WithLocalEndpoint(zEndpoint),
 		zipkin.WithNoopTracer(useNoopTracer),
 	)
