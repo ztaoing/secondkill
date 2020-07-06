@@ -61,7 +61,7 @@ type SecKillConf struct {
 	IPBlackMap map[string]bool
 	IDBlackMap map[int]bool //用户黑名单
 
-	SecProductInfoMap map[int]*SecProductInfoConf
+	SecProductInfoMap map[int]*SecProductInfoConf //缓存中的商品信息
 
 	AppWriteToHandleGoroutineNum  int
 	AppReadFromHandleGoroutineNum int
