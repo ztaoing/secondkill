@@ -13,6 +13,8 @@ import (
 	"os"
 	"secondkill/pkg/bootstrap"
 	"secondkill/pkg/config"
+	"secondkill/sk-app/model"
+	"sync"
 )
 
 const KConfigType = "CONFIG_TYPE"
@@ -75,4 +77,25 @@ func initTracer(zipkinURL string) {
 		Logger.Log("tracer", "zipkin", "type", "nativa", "url", zipkinURL)
 	}
 
+}
+
+/**
+秒杀
+*/
+
+type SkAppCtx struct {
+	//请求
+	SecReqChan       chan *model.SecRequest
+	SecReqChanSize   int
+	RWSecProductLock sync.RWMutex
+
+	UserConnMap     map[string]chan *model.SecResult
+	UserConnMapLock sync.Mutex
+}
+
+var SkAppContext = &SkAppCtx{
+	//用户连接
+	UserConnMap: make(map[string]chan *model.SecResult, 1024),
+	//请求
+	SecReqChan: make(chan *model.SecRequest, 1024),
 }

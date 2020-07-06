@@ -29,7 +29,7 @@ import (
 )
 
 //初始化http服务
-func initHTTP(host, servicePort string) {
+func InitHTTP(host, servicePort string) {
 	log.Printf("host:%s port:%s", host, servicePort)
 
 	flag.Parse()

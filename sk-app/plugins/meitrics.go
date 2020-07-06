@@ -69,7 +69,7 @@ func (s *skAppMetricMiddleware) SecInfoList() ([]map[string]interface{}, int, er
 	return data, code, err
 }
 
-func NewSkAppMetrics(requestCount metrics.Counter, requestLatency metrics.Histogram) service.ServiceMiddleware {
+func NewSkAppMetricsMiddleware(requestCount metrics.Counter, requestLatency metrics.Histogram) service.ServiceMiddleware {
 	return func(next service.Service) service.Service {
 		return &skAppMetricMiddleware{
 			service:        next,
