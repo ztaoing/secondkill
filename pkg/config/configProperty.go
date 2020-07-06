@@ -74,11 +74,11 @@ type SecKillConf struct {
 
 	CoreWaitResultTimeOut int
 
-	MaxRequestWaitTimeout int
+	MaxRequestWaitTimeout int //最大请求超时时间
 
 	SendToWriteChanTimeout int
 	SendToHandChanTimeout  int
-	TokenPassWd            string
+	TokenPassWd            string //token秘钥
 	//	EtcdConf  *EtcdConf  //EtcdP配置
 }
 
