@@ -208,3 +208,6 @@ func (a ActivityServiceImpl) loadProductFromEtcd(etcdKey string) ([]*model.SecPr
 	}
 	return secProductInfoList, nil
 }
+
+//装饰
+type ActivityServiceMiddleware func(ActivityService) ActivityService
