@@ -22,6 +22,7 @@ import (
 const KConfigType = "CONFIG_TYPE"
 
 var Logger log.Logger
+var zipkinTracer *zipkin.Tracer
 
 func init() {
 	Logger := log.NewLogfmtLogger(os.Stderr)
@@ -81,6 +82,7 @@ func LoadRemoteConfig() (err error) {
 	return
 }
 
+//解析配置
 func Sub(key string, value interface{}) error {
 	Logger.Log("配置文件的前缀为：", key)
 	sub := viper.Sub(key)
@@ -99,7 +101,7 @@ func initTracer(zipkinUrl string) {
 	defer reporter.Close()
 
 	zEndpoint, _ := zipkin.NewEndpoint(bootstrap.DiscoverConfig.ServiceName, bootstrap.DiscoverConfig.Port)
-	_, err = zipkin.NewTracer(
+	zipkinTracer, err = zipkin.NewTracer(
 		reporter, zipkin.WithLocalEndpoint(zEndpoint), zipkin.WithNoopTracer(useNoopTracer),
 	)
 	if err != nil {
