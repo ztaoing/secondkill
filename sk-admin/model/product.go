@@ -11,6 +11,15 @@ import (
 	"secondkill/pkg/mysql"
 )
 
+const (
+	//正常
+	ActivityStatusNormal = 0
+	//禁用
+	ActivityStatusDisable = 1
+	//过期
+	ActivityStatusExpire = 2
+)
+
 type Product struct {
 	ProductId   int    `json:"product_id"`   //商品id
 	ProductName string `json:"product_name"` //商品名称
