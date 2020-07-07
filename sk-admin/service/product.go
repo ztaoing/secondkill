@@ -38,3 +38,5 @@ func (p ProductServiceImpl) GetProductList() ([]gorose.Data, error) {
 	}
 	return productList, nil
 }
+
+type ProductServiceMiddleware func(ProductService) ProductService
