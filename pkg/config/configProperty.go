@@ -6,8 +6,10 @@
 package config
 
 import (
+	"github.com/coreos/etcd/clientv3"
 	"github.com/go-redis/redis"
 	"github.com/samuel/go-zookeeper/zk"
+	"secondkill/sk-core/service/svc_limit"
 	"sync"
 )
 
@@ -17,7 +19,7 @@ var (
 	MysqlConfig MysqlConf
 	TraceConfig TraceConf
 	Zk          ZookeeperConf
-	//Etcd        EtcdConf
+	Etcd        EtcdConf
 )
 
 //redis配置
@@ -37,13 +39,12 @@ type RedisConf struct {
 }
 
 //Etcd配置
-/*
+
 type EtcdConf struct {
 	EtcdConn          *clientv3.Client //链接
 	EtcdSecProductKey string           //商品键
 	Host              string
 }
-*/
 
 //秒杀商品配置信息
 type SecKillConf struct {
@@ -115,7 +116,7 @@ type SecProductInfoConf struct {
 	OnePersonBuyLimit int                 `json:"one_person_buy_limit"` //单个用户购买数量限制
 	BuyRate           float64             `json:"buy_rate"`             //购买频率限制
 	SoldMaxlimit      int                 `json:"sold_maxlimit"`        //销售最大量
-	SecLimit          *srv_limit.SecLimit `json:"sec_limit"`            //限速控制
+	SecLimit          *svc_limit.SecLimit `json:"sec_limit"`            //限速控制
 }
 
 //访问限制
