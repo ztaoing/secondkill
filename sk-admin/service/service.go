@@ -12,7 +12,7 @@ type Service interface {
 type SKAdminService struct {
 }
 
-func (s *SKAdminService) HealthCheck() bool {
+func (s SKAdminService) HealthCheck() bool {
 	return true
 }
 
