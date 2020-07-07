@@ -5,7 +5,7 @@
 
 package service
 
-type service interface {
+type Service interface {
 	HealthCheck() bool
 }
 
@@ -16,4 +16,5 @@ func (s *SKAdminService) HealthCheck() bool {
 	return true
 }
 
-type ServiceMiddleware func(service) service
+//装饰者
+type ServiceMiddleware func(Service) Service
