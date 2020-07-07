@@ -64,14 +64,14 @@ func ActivityMetrics(requestCount metrics.Counter, requestLantency metrics.Histo
 }
 
 //service指标参数
-func (sk SKAdminMetricMiddelware) HealthCheck(result bool) {
+func (sk SKAdminMetricMiddelware) HealthCheck() bool {
 	defer func(begin time.Time) {
 		lvs := []string{"method", "HealthCheck"}
 		sk.requestCount.With(lvs...).Add(1)
 		sk.requestLantency.With(lvs...).Observe(time.Since(begin).Seconds())
 	}(time.Now())
-	result = sk.Service.HealthCheck()
-	return
+	result := sk.Service.HealthCheck()
+	return result
 }
 
 //productMetric
