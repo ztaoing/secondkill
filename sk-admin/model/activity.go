@@ -24,7 +24,7 @@ type Activity struct {
 	StartTimeStr string  `json:"start_time_str"`
 	EndTimeStr   string  `json:"end_time_str"`
 	StatusStr    string  `json:"status_str"`
-	Speed        int     `json:"speed"`
+	Speed        int     `json:"speed"` //每秒最多能卖多少
 	BuyLimit     int     `json:"buy_limit"`
 	BuyRate      float64 `json:"buy_rate"`
 }
