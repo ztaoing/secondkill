@@ -79,7 +79,6 @@ func AntiSpam(req *model.SecRequest) (err error) {
 		//该秒内访问次数
 		secIpCount = limit.secLimit.Count(req.AccessTime)
 		minIpCount = limit.minLimit.Count(req.AccessTime)
-
 	}
 	//释放锁
 	SecLimitMgrVars.lock.Unlock()
@@ -103,7 +102,7 @@ func AntiSpam(req *model.SecRequest) (err error) {
 	}
 
 	//该IP一分钟内访问次数 大于最大访问次数
-	if minIdCount > config.SecKill.AccessLimitConf.IPMinAccessLimit {
+	if minIpCount > config.SecKill.AccessLimitConf.IPMinAccessLimit {
 		err = fmt.Errorf("invalid request")
 		return
 	}
