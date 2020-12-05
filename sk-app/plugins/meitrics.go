@@ -14,9 +14,9 @@ import (
 
 //metrics中间件
 type skAppMetricMiddleware struct {
-	service        service.Service
-	requestCount   metrics.Counter
-	requestLatency metrics.Histogram
+	service                  service.Service
+	requestCount             metrics.Counter
+	requestLaDockerfiletency metrics.Histogram
 }
 
 func (s *skAppMetricMiddleware) HealthCheck() bool {

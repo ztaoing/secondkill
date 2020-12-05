@@ -7,7 +7,6 @@
 package discover
 
 import (
-	"fmt"
 	"github.com/go-kit/kit/sd/consul"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
@@ -47,11 +46,11 @@ type DiscoverClientInstance struct {
 	instanceMap sync.Map
 }
 
+//注册服务
 func (consulClient *DiscoverClientInstance) Register(instanceId, svcHost, svcPort, healthCheckUrl string, svcName string, weight int, meta map[string]string, tags []string, logger *log.Logger) bool {
 	port, _ := strconv.Atoi(svcPort)
 
 	//构建服务实例元数据
-	fmt.Println(weight)
 	serviceRegistration := &api.AgentServiceRegistration{
 		ID:      instanceId,
 		Name:    svcName,
@@ -84,6 +83,7 @@ func (consulClient *DiscoverClientInstance) Register(instanceId, svcHost, svcPor
 
 }
 
+//服务注销
 func (consulClient *DiscoverClientInstance) DeRegister(instanceId string, logger *log.Logger) bool {
 	//构建服务实例元数据
 	serviceRegistration := &api.AgentServiceRegistration{
@@ -103,6 +103,7 @@ func (consulClient *DiscoverClientInstance) DeRegister(instanceId string, logger
 	return true
 }
 
+//查询服务实例
 func (consulClient *DiscoverClientInstance) DiscoverServices(serviceName string, logger *log.Logger) []*common.ServiceInstance {
 	//是否已经缓存
 	instanceList, ok := consulClient.instanceMap.Load(serviceName)
@@ -136,17 +137,16 @@ func (consulClient *DiscoverClientInstance) DiscoverServices(serviceName string,
 				if len(v) == 0 {
 					//没有服务实例在线
 					consulClient.instanceMap.Store(serviceName, []*common.ServiceInstance{})
-				}
-
-				var healthServices []*common.ServiceInstance
-				for _, service := range v {
-					//只获取健康的服务实例
-					if service.Checks.AggregatedStatus() == api.HealthPassing {
-						healthServices = append(healthServices, newServiceInstances(service.Service))
+				} else {
+					var healthServices []*common.ServiceInstance
+					for _, service := range v {
+						//只获取健康的服务实例
+						if service.Checks.AggregatedStatus() == api.HealthPassing {
+							healthServices = append(healthServices, newServiceInstances(service.Service))
+						}
 					}
+					consulClient.instanceMap.Store(serviceName, healthServices)
 				}
-				consulClient.instanceMap.Store(serviceName, healthServices)
-
 			}
 
 			defer plan.Stop()
@@ -167,6 +167,7 @@ func (consulClient *DiscoverClientInstance) DiscoverServices(serviceName string,
 	for i := 0; i < len(instances); i++ {
 		instances[i] = newServiceInstances(entries[i].Service)
 	}
+	//更新到缓存中
 	consulClient.instanceMap.Store(serviceName, instances)
 	return instances
 }

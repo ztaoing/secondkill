@@ -22,7 +22,7 @@ func HandleUser() {
 	log.Println("handle user running")
 	for req := range config.SecLayerCtx.Read2HandleChan {
 		log.Printf("begin process request:%v", req)
-
+		//处理抢购
 		res, err := HandleSecKill(req)
 		if err != nil {
 			log.Printf("process request [%v] failed,ERROR:%v", req, err)

@@ -41,6 +41,7 @@ func RunProcess() {
 	return
 }
 
+//从redis队列中读
 func HandleReader() {
 	log.Printf("read goroutine [%v] running", pkgConfig.Redis.Proxy2layerQueueName)
 
@@ -63,7 +64,6 @@ func HandleReader() {
 
 		//判断是否超时
 		nowTime := time.Now().Unix()
-		//?todo
 		fmt.Println(nowTime, " ", req.SecTime, "", 100)
 		if nowTime-req.SecTime >= int64(pkgConfig.SecKill.MaxRequestWaitTimeout) {
 			log.Printf("request [%v] is expired", req)
@@ -71,6 +71,7 @@ func HandleReader() {
 		}
 		//设置超时时间
 		timer := time.NewTicker(time.Millisecond * time.Duration(pkgConfig.SecKill.CoreWaitResultTimeOut))
+		defer timer.Stop()
 		select {
 		case config.SecLayerCtx.Read2HandleChan <- &req:
 		case <-timer.C:
@@ -80,6 +81,7 @@ func HandleReader() {
 	}
 }
 
+//向redis队列中写
 func HandleWriter() {
 	for res := range config.SecLayerCtx.Write2HandleChan {
 		fmt.Printf("===", res)

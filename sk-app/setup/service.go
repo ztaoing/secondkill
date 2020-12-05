@@ -104,6 +104,7 @@ func InitHTTP(host, servicePort string) {
 	ctx := context.Background()
 	//创建http.handler
 	r := transport.MakeHttpHandler(ctx, endpts, localConfig.ZipKinTracer, localConfig.Logger)
+
 	//http server
 	go func() {
 		//注册服务
@@ -112,6 +113,7 @@ func InitHTTP(host, servicePort string) {
 		errChan <- http.ListenAndServe(":"+servicePort, handler)
 	}()
 
+	//停止
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)

@@ -13,8 +13,6 @@ import (
 	"secondkill/pkg/loadbalance"
 )
 
-//我们以Auth服务提供的rpc接口为例，来介绍rpc客户端装饰器组件是如何运转的
-
 type OAuthClient interface {
 	CheckToken(ctx context.Context, tracer opentracing.Tracer, request *pb.CheckTokenRequest) (*pb.CheckTokenResponse, error)
 }
@@ -26,8 +24,14 @@ type OAuthClientImpl struct {
 	tracer      opentracing.Tracer      //链路追踪系统
 }
 
+//对用户token进行校验
 func (O *OAuthClientImpl) CheckToken(ctx context.Context, tracer opentracing.Tracer, request *pb.CheckTokenRequest) (*pb.CheckTokenResponse, error) {
-	panic("todo ")
+	response := new(pb.CheckTokenResponse)
+	if err := O.manager.DecoratorInvoke("pb.OAuthService/CheckToken", "token_check", tracer, ctx, request, response); err == nil {
+		return response, nil
+	} else {
+		return nil, err
+	}
 }
 
 //初始化OAuthClientImpl实例，并配置其各种属性

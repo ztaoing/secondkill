@@ -14,8 +14,6 @@ import (
 
 func main() {
 	mysql.InitMysql(pkgConfig.MysqlConfig.Host, pkgConfig.MysqlConfig.Port, pkgConfig.MysqlConfig.User, pkgConfig.MysqlConfig.Pwd, pkgConfig.MysqlConfig.Db)
-
-	//setup.InitEtcd()
 	setup.InitZK()
 	setup.InitHTTP(bootstrap.HttpConfig.Host, bootstrap.HttpConfig.Port)
 }

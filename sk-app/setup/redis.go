@@ -31,8 +31,9 @@ func InitRedis() {
 	}
 	log.Printf("init redis success")
 	config.Redis.RedisConn = client
-
+	//加载黑名单信息
 	loadBlackList(client)
+
 	initRedisProcess()
 }
 
@@ -53,6 +54,7 @@ func loadBlackList(conn *redis.Client) {
 			log.Printf("invalid user id:%v", id)
 			continue
 		}
+		//放到本地缓存中
 		config.SecKill.IDBlackMap[id] = true
 	}
 
@@ -85,6 +87,7 @@ func initRedisProcess() {
 //同步用户id黑名单
 func syncIdBlackList(conn *redis.Client) {
 	for {
+		//阻塞获取队列中的数据
 		idArr, err := conn.BRPop(time.Minute, config.Redis.IdBlackListQueue).Result()
 		if err != nil {
 			//阻塞式取出

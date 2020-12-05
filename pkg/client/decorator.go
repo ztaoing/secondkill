@@ -35,8 +35,9 @@ type DefaultClientManager struct {
 	logger          *log.Logger
 	discoveryClient discover.DiscoveryClient
 	loadbalance     loadbalance.LoadBalance
-	after           []InvokeAfterFunc  //func list
-	before          []InvokeBeforeFunc //func list
+	before          []InvokeBeforeFunc //前 func list
+	after           []InvokeAfterFunc  //后 func list
+
 }
 
 //之前调用
@@ -55,7 +56,8 @@ type InvokeBeforeFunc func() (err error)
 @param outVal 响应
 */
 func (manager *DefaultClientManager) DecoratorInvoke(path string, hystrixName string, tracer opentracing.Tracer, ctx context.Context, inputVal interface{}, outVal interface{}) (err error) {
-	//调用clientManager 的before回调函数，进行发送rpc请求前的统一回调处理
+
+	//进行发送rpc请求 前的统一回调处理
 	for _, fn := range manager.before {
 		if err = fn(); err != nil {
 			return err
@@ -70,8 +72,7 @@ func (manager *DefaultClientManager) DecoratorInvoke(path string, hystrixName st
 		if instance, err := manager.loadbalance.SelectService(instanceList); err == nil {
 			if instance.GrpcPort > 0 {
 
-				//获取rpc端口并选取的实例发送rpc请求
-				//DialOption配置了是如何设置连接的
+				//获取服务的rpc端口并选取的实例发送rpc请求
 				if conn, err := grpc.DialContext(ctx, instance.Host+":"+strconv.Itoa(instance.GrpcPort), grpc.WithInsecure(),
 					grpc.WithUnaryInterceptor(otgrpc.OpenTracingClientInterceptor(genTracer(tracer),
 						otgrpc.LogPayloads()))); err == nil {
@@ -107,22 +108,21 @@ func genTracer(tracer opentracing.Tracer) opentracing.Tracer {
 	if tracer != nil {
 		return tracer
 	}
-	//如果没有tracer
+	//如果没有tracer,生成默认tracer
 	zipkinUrl := "http://" + config.TraceConfig.Host + ":" + config.TraceConfig.Port + config.TraceConfig.Url
 
 	zipkinRecodeUrl := bootstrap.HttpConfig.Host + ":" + bootstrap.HttpConfig.Port
 
+	//new Collector
 	collector, err := zipkinbridge.NewHTTPCollector(zipkinUrl)
 	if err != nil {
 		log.Fatalf("zipkin.NewHTTPCollector err:%v", err)
 	}
 
+	//new Recorder
 	recorder := zipkinbridge.NewRecorder(collector, false, zipkinRecodeUrl, bootstrap.DiscoverConfig.ServiceName)
-	/*
-		ClientServerSameSpan允许将RPC调用的客户端和服务器端注释放置在相同范围（Zipkin V1行为）或不同范围（与其他跟踪解决方案更加一致）中。
-		默认情况下，此Tracer使用共享主机span（因此，客户端和服务器端在同一span中）。
-		如果使用单独的span，则Zipkin V1可能会遇到麻烦，因为无法在Zipkin服务器端解决时钟偏斜问题。
-	*/
+
+	//new Tracer
 	resTracer, err := zipkinbridge.NewTracer(recorder, zipkinbridge.ClientServerSameSpan(true))
 	if err != nil {
 		log.Fatalf("zipkinbridge.NewTracer err:%v", err)

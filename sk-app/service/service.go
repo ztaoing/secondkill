@@ -212,7 +212,7 @@ func SecInfoById(productId int) (map[string]interface{}, int, error) {
 	/**
 	允许 大于商品数1.5倍的请求进入 秒杀核心层
 	*/
-	//TODO curRate 随机？
+	//TODO curRate 随机
 	curRate := rand.Float64()
 	if curRate > v.BuyRate*1.5 {
 		start = false
